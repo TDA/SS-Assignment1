@@ -1,6 +1,10 @@
+#!/usr/bin/python
 __author__ = 'saipc'
 
 import socket
+import sys
+
+print sys.argv
 
 HOST, PORT = '', 8080
 
@@ -10,6 +14,9 @@ listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 listen_socket.bind((HOST, PORT))
 listen_socket.listen(1)
 print 'Serving HTTP on port %s ...' % PORT
+
+is_send_404 = True
+
 while True:
     client_connection, client_address = listen_socket.accept()
     request = client_connection.recv(1024)
@@ -20,5 +27,11 @@ HTTP/1.1 200 OK
 
 Hello, World!
 """
-    client_connection.sendall(http_response)
+    http_404_response = """HTTP/1.1 404 Not Found
+    """
+
+    if is_send_404:
+        client_connection.sendall(http_404_response)
+    else:
+        client_connection.sendall(http_response)
     client_connection.close()
