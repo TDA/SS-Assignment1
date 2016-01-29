@@ -4,6 +4,7 @@ __author__ = 'saipc'
 import socket
 import sys
 import re
+from urlparse import unquote
 
 # set this to the port specified on command line
 # or default to 8080
@@ -40,8 +41,9 @@ while True:
     # print request
     parts = r.search(headers[0]).groups()
     print parts[1]
-    command = exec_r.search(parts[1]).groups()[1]
-    if command:
+    if exec_r.search(parts[1]):
+        command = unquote(exec_r.search(parts[1]).groups()[1])
+        print command
         # execute as a linux command
         pass
 
