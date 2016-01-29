@@ -32,30 +32,30 @@ HTTP/1.1 404 Not Found
 r = re.compile("(GET|POST)(.*)(HTTP/1.1)", re.IGNORECASE)
 exec_r = re.compile("(/exec/)(.*)", re.IGNORECASE)
 while True:
-    client_connection, client_address = listen_socket.accept()
-    request = client_connection.recv(1024)
-    headers = request.split("\r\n")
-    print headers
-    if "/exec" in request:
-        is_send_404 = False
-    else:
-        is_send_404 = True
-
     # Multiline string yay!
     http_response = """\
 HTTP/1.1 200 OK
 
 """
-    parts = r.search(headers[0]).groups()
-    print parts[1]
-    if exec_r.search(parts[1]):
-        command = unquote(exec_r.search(parts[1]).groups()[1])
-        print command
-        # execute as a linux command
-        retVal = subprocess.call(command.split(" "), shell=True)
-        if retVal == 0:
-            response = subprocess.check_output(command.split(" "), shell=True)
-            http_response = http_response + str(response)
+    client_connection, client_address = listen_socket.accept()
+    request = client_connection.recv(1024)
+    headers = request.split("\r\n")
+    print headers[0]
+    if "/exec" in request:
+        is_send_404 = False
+        parts = r.search(headers[0]).groups()
+        print parts[1]
+        if exec_r.search(parts[1]):
+            command = unquote(exec_r.search(parts[1]).groups()[1])
+            print command
+            # execute as a linux command
+            retVal = subprocess.call(command, shell=True)
+            if retVal == 0:
+                response = subprocess.check_output(command, shell=True)
+                print response
+                http_response = http_response + str(response)
+    else:
+        is_send_404 = True
 
 
     if "gzip" in request:
