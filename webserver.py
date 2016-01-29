@@ -27,6 +27,7 @@ HTTP/1.1 404 Not Found
 """
 
 r = re.compile("(GET|POST)(.*)(HTTP/1.1)", re.IGNORECASE)
+exec_r = re.compile("(/exec/)(.*)", re.IGNORECASE)
 while True:
     client_connection, client_address = listen_socket.accept()
     request = client_connection.recv(1024)
@@ -38,7 +39,11 @@ while True:
         is_send_404 = True
     # print request
     parts = r.search(headers[0]).groups()
-    print parts
+    print parts[1]
+    command = exec_r.search(parts[1]).groups()[1]
+    if command:
+        # execute as a linux command
+        pass
 
     # Multiline string yay!
     http_response = """\
