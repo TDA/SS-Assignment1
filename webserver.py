@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import subprocess
+
 __author__ = 'saipc'
 
 import socket
@@ -38,21 +40,23 @@ while True:
         is_send_404 = False
     else:
         is_send_404 = True
-    # print request
+
+    # Multiline string yay!
+    http_response = """\
+HTTP/1.1 200 OK
+
+"""
     parts = r.search(headers[0]).groups()
     print parts[1]
     if exec_r.search(parts[1]):
         command = unquote(exec_r.search(parts[1]).groups()[1])
         print command
         # execute as a linux command
-        pass
+        retVal = subprocess.call(command.split(" "), shell=True)
+        if retVal == 0:
+            response = subprocess.check_output(command.split(" "), shell=True)
+            http_response = http_response + str(response)
 
-    # Multiline string yay!
-    http_response = """\
-HTTP/1.1 200 OK
-
-Hello, World!
-"""
 
     if "gzip" in request:
         # encode with gzip, do nothing for now
