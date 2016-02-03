@@ -1,10 +1,9 @@
 #!/usr/bin/python
-import gzip
+import os
 import subprocess
-import zlib
+import time
 
 __author__ = 'saipc'
-
 import socket
 import sys
 import re
@@ -36,42 +35,52 @@ HTTP/1.1 404 Not Found
 r = re.compile("(GET|POST)(.*)(HTTP/1.1)", re.IGNORECASE)
 exec_r = re.compile("(/exec/)(.*)", re.IGNORECASE)
 while True:
-    # Multiline string yay!
-    http_response_headers = """\
+    try:
+        # Multiline string yay!
+        http_response_headers = """\
 HTTP/1.1 200 OK
 """
-    http_response = ""
-    client_connection, client_address = listen_socket.accept()
-    request = client_connection.recv(1024)
-    headers = request.split("\r\n")
-    print headers[0]
-    if "/exec" in request:
-        is_send_404 = False
-        parts = r.search(headers[0]).groups()
-        print parts[1]
-        if exec_r.search(parts[1]):
-            command = unquote(exec_r.search(parts[1]).groups()[1])
-            print command
-            # execute as a linux command
-            retVal = subprocess.call(command, shell=True)
-            if retVal == 0:
-                response = subprocess.check_output(command, shell=True)
-                # print response
-                http_response = str(response)
-    else:
-        is_send_404 = True
+        http_response = ""
+        client_connection, client_address = listen_socket.accept()
 
-    if "gzip" in request:
-        # encode with gzip, do nothing for now
-        http_response_headers = http_response_headers + "Content-Encoding: gzip\r\n"
-        http_response = zlib.compress(http_response)
+        pid = os.fork()
+        if pid == 0:  # child
+            listen_socket.close()
+            request = client_connection.recv(1024)
+            headers = request.split("\r\n")
+            print headers[0]
+            if "/exec" in request:
+                is_send_404 = False
+                parts = r.search(headers[0]).groups()
+                print parts[1]
+                if exec_r.search(parts[1]):
+                    command = unquote(exec_r.search(parts[1]).groups()[1])
+                    print command
+                    # execute as a linux command
+                    retVal = subprocess.call(command, shell=True)
+                    if retVal == 0:
+                        response = subprocess.check_output(command, shell=True)
+                        # print response
+                        http_response = str(response)
+            else:
+                is_send_404 = True
 
-    http_response = http_response_headers + "\r\n" + http_response
-    print http_response
+            http_response = http_response_headers + "\r\n" + http_response
+            print http_response
 
-    if is_send_404:
-        client_connection.sendall(http_404_response)
-    else:
-        client_connection.sendall(http_response)
-    client_connection.close()
+            if is_send_404:
+                client_connection.sendall(http_404_response)
+            else:
+                client_connection.sendall(http_response)
+            # time.sleep(30) # proof that its concurrent
+            client_connection.close()
+            os._exit(0)
+        else:  # parent
+            client_connection.close()
+    except KeyboardInterrupt:
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
+
 
